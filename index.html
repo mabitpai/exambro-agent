@@ -68,7 +68,8 @@
                 <p>Lumajang-Jawa Timur</p>
             </div>
             <div id="clock">--:--:--</div>
-            <h2>Masukkan PIN Ujian</h2>
+            <div id="date" style="font-size: 0.85rem; color: #555; text-align: center; margin-top: 4px;">-</div>
+            <h2>Login CBT</h2>
             <label for="pin-input">PIN</label>
             <input type="text" id="pin-input" placeholder="Contoh: 1234" inputmode="numeric" autocomplete="off" />
             <label for="nis-input" style="margin-top: 10px; display: block;">NIS</label>
@@ -131,8 +132,21 @@
             const secs = String(now.getSeconds()).padStart(2, '0');
             document.getElementById('clock').textContent = `${hours}:${mins}:${secs}`;
         }
+
+        function updateDate() {
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('date').textContent = formatter.format(now);
+        }
+
         setInterval(updateClock, 1000);
         updateClock();
+        updateDate();
 
         function setLoading(show) {
             const loadingEl = document.getElementById('small-loading');
