@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamBrowser</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(135deg, #0d64ff, #1692ff 48%, #1dc2e0); min-height: 100vh; }
+        #school-info { text-align: center; margin-bottom: 16px; }
+        #school-info h1 { font-size: 1.2rem; font-weight: 700; margin: 0; color: #083c97; font-family: 'Georgia', serif; }
+        #school-info p { font-size: 0.9rem; font-weight: 400; margin: 2px 0 0; color: #555; }
+        .center-screen { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 80px); padding: 16px; }
+        #login-card { width: 100%; max-width: 460px; background: rgba(255,255,255,0.96); border-radius: 16px; box-shadow: 0 20px 34px rgba(0,0,0,0.25); padding: 26px 24px 24px; }
+        #clock { font-size: 2.4rem; font-weight: 900; margin: 0 0 8px; text-align: center; color: #07337b; }
+        h2 { margin: 0 0 16px; font-size: 2rem; font-weight: 800; color: #083c97; text-align: center; }
+        label { display: block; color: #0f4a9d; font-weight: 700; margin: 16px 0 6px; }
+        input[type="text"] { width: 100%; padding: 12px 14px; font-size: 1rem; border: 1px solid #b4d8ff; border-radius: 8px; outline: none; transition: border-color .2s ease; }
+        input[type="text"]:focus { border-color: #0c69ff; }
+        button { display: block; width: 100%; margin-top: 16px; padding: 12px; font-size: 1.05rem; font-weight: 800; border: 0; border-radius: 9px; background: linear-gradient(90deg, #15a038, #1eb24d); color: white; cursor: pointer; transition: filter .2s ease; }
+        button:hover { filter: brightness(1.06); }
+        #finish-button { min-width: 100px; margin: 0 0 0 auto; padding: 8px 14px; font-size: .9rem; }
+        #error-message { margin-top: 14px; color: #d32f2f; font-weight: 700; text-align: center; display: none; }
+        #exam-page { display: none; min-height: 100vh; }
+        #header { position: fixed; top: 0; left: 0; right: 0; min-height: 50px; background: rgba(0,0,0,0.8); color: #ffffff; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 10; font-size: .9rem; flex-wrap: wrap; gap: 8px; }
+        #header .meta { display: flex; align-items: center; gap: 10px; }
+        #timer { font-weight: 800; }
+        #finish-button { width: auto; padding: 6px 10px; font-size: .82rem; }
+        #iframe-container { margin-top: 60px; height: calc(100vh - 60px); }
+        iframe { width: 100%; height: 100%; border: 0; }
+        #small-loading { display:none; margin: 10px 0; text-align:center; color:#505050; font-size:.9rem; }
+        #small-loading .spinner { width: 20px; height: 20px; border: 3px solid #b4d8ff; border-top-color: #0c69ff; border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; margin-right: 8px; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #violation-modal, #lock-modal { display: none; position: fixed; inset:0; z-index: 9999; background: rgba(0,0,0,0.75); color: #fff; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        .modal-dialog { background: #ffffff; color: #000; border-radius: 12px; max-width: 340px; width: 90%; padding: 20px; box-shadow: 0 12px 28px rgba(0,0,0,0.35); text-align: center; }
+        .modal-dialog h3 { margin: 0 0 10px; font-size: 1.1rem; color: #c62828; }
+        .modal-dialog p { margin: 0 0 16px; font-size: 0.95rem; color: #333; }
+        .modal-dialog button { margin-top: 8px; padding: 10px 16px; font-size: 0.95rem; border: none; border-radius: 8px; cursor: pointer; }
+        #violation-modal .modal-dialog { border: 1px solid #c62828; }
+        #violation-modal .modal-dialog button { background: #c62828; color: #fff; }
+        #lock-modal .modal-dialog { border: 1px solid #000; }
+        #lock-modal .modal-dialog button { background: #333; color: #fff; }
+        @media(max-width: 768px) {
+            #school-info h1 { font-size: 1.1rem; }
+            #school-info p { font-size: 0.85rem; }
+            #login-card { padding: 20px 18px 18px; }
+            #clock { font-size: 2rem; }
+            h2 { font-size: 1.7rem; }
+            #header { height: 56px; font-size: .84rem; padding: 0 10px; }
+        }
+        @media(max-width: 480px) {
+            #school-info h1 { font-size: 1rem; }
+            #school-info p { font-size: 0.8rem; }
+            #login-card { padding: 18px 14px 16px; }
+            #clock { font-size: 1.5rem; }
+            h2 { font-size: 1.35rem; }
+            input[type="text"] { padding: 10px; }
+            button { padding: 11px; font-size: .97rem; }
+            #header { padding: 0 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="center-screen" id="login-page">
+        <div id="login-card">
+            <div id="school-info">
+                <h1>CBT SMA Negeri Klik Media</h1>
+                <p>Lumajang-Jawa Timur</p>
+            </div>
+            <div id="clock">--:--:--</div>
+            <h2>Masukkan PIN Ujian</h2>
+            <label for="pin-input">PIN</label>
+            <input type="text" id="pin-input" placeholder="Contoh: 1234" inputmode="numeric" autocomplete="off" />
+            <label for="nis-input" style="margin-top: 10px; display: block;">NIS</label>
+            <input type="text" id="nis-input" placeholder="Contoh: 12345678" inputmode="numeric" autocomplete="off" />
+            <button type="button" id="login-btn">Masuk</button>
+            <div id="student-info" style="display:none; text-align:left; margin-top:10px; padding:10px; background:#f6f9ff; border:1px solid #cbdcfa; border-radius:8px; ">
+                <strong style="display:block; margin-bottom:8px;">Identitas Peserta</strong>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr><td style="padding: 4px 0; font-weight: bold; width: 40%;">Nama:</td><td id="student-name">-</td></tr>
+                    <tr><td style="padding: 4px 0; font-weight: bold;">Kelas:</td><td id="student-class">-</td></tr>
+                    <tr><td style="padding: 4px 0; font-weight: bold;">Sekolah Asal:</td><td id="student-school">-</td></tr>
+                    <tr><td style="padding: 4px 0; font-weight: bold;">Absen:</td><td id="student-absen">-</td></tr>
+                    <tr><td style="padding: 4px 0; font-weight: bold;">No. Peserta:</td><td id="student-number">-</td></tr>
+                </table>
+            </div>
+            <button type="button" id="start-btn" style="display:none; margin-top: 10px; background: #0057d8;">Start Exam</button>
+            <div id="small-loading"><div class="spinner"></div>Loading...</div>
+            <p id="error-message">PIN atau NIS Salah</p>
+        </div>
+    </div>
+
+    <div id="exam-page">
+        <div id="header">
+            <div class="meta"><span>Ujian:</span><strong id="subject">-</strong></div>
+            <div class="meta"><span>Kelas:</span><strong id="class">-</strong></div>
+            <div id="timer">Waktu: 90:00</div>
+            <button id="finish-button" type="button">SELESAI</button>
+        </div>
+        <div id="iframe-container">
+            <iframe id="exam-iframe" src="" allow="fullscreen"></iframe>
+        </div>
+    </div>
+
+    <div id="violation-modal">
+        <div class="modal-dialog">
+            <h3>PELANGGARAN TERDETEKSI</h3>
+            <p>Anda keluar dari halaman ujian. Silakan klik tombol di bawah untuk kembali ke halaman login.</p>
+            <button id="back-to-login-btn">Kembali ke Login</button>
+        </div>
+    </div>
+    <div id="lock-modal">
+        <div class="modal-dialog">
+            <h3>UJIAN TERKUNCI</h3>
+            <p>Terjadi terlalu banyak pelanggaran. Silakan laporkan ke pengawas atau admin untuk bantuan.</p>
+            <button id="close-lock-btn">Kembali ke Login</button>
+        </div>
+    </div>
+
+    <script>
+        let violationCount = 0;
+        let timerInterval;
+        let timeLeft = 90 * 60;
+        let pendingExam = null;
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbysmUXZNXt1drs4VxoUpwmpIgH1jE0yUJvlfzHtdfHruJF1y8v0X1JAV12jfS984DC9Mg/exec';
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const secs = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${mins}:${secs}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function setLoading(show) {
+            const loadingEl = document.getElementById('small-loading');
+            if (loadingEl) loadingEl.style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const elem = document.getElementById('error-message');
+            if (!message) {
+                elem.style.display = 'none';
+                return;
+            }
+            elem.textContent = message;
+            elem.style.display = 'block';
+        }
+
+        async function validatePin() {
+            const pin = document.getElementById('pin-input').value.trim();
+            const nis = document.getElementById('nis-input').value.trim();
+            if (!pin || !nis) {
+                showError('PIN dan NIS harus diisi.');
+                return;
+            }
+            showError('');
+            setLoading(true);
+
+            const url = `${GAS_URL}?pin=${encodeURIComponent(pin)}&nis=${encodeURIComponent(nis)}`;
+            try {
+                const response = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
+                const data = await response.json();
+                if (!data.valid) {
+                    setLoading(false);
+                    showError(data.error || 'PIN atau NIS Salah atau Ujian Belum Aktif');
+                    return;
+                }
+
+                pendingExam = {
+                    subject: data.subject || '-',
+                    className: data.className || '-',
+                    formUrl: data.formUrl || '',
+                    duration: (Number(data.durationMinutes) || 90) * 60
+                };
+
+                // Set identitas siswa
+                document.getElementById('student-name').textContent = data.name || '-';
+                document.getElementById('student-class').textContent = data.studentClass || '-';
+                document.getElementById('student-school').textContent = data.school || '-';
+                document.getElementById('student-absen').textContent = data.absen || '-';
+                document.getElementById('student-number').textContent = data.participantNumber || '-';
+
+                document.getElementById('student-info').style.display = 'block';
+                document.getElementById('start-btn').style.display = 'block';
+                document.getElementById('login-btn').style.display = 'none';
+                setLoading(false);
+
+            } catch (err) {
+                console.error('Error connect:', err);
+                showError('Gagal koneksi ke server. Silakan cek Apps Script deployment & akses publik.');
+                setLoading(false);
+            }
+        }
+
+        function startExam() {
+            if (!pendingExam) return;
+
+            document.getElementById('subject').textContent = pendingExam.subject;
+            document.getElementById('class').textContent = pendingExam.className;
+            document.getElementById('exam-iframe').src = pendingExam.formUrl;
+
+            timeLeft = pendingExam.duration;
+            const savedTime = localStorage.getItem('examTimeLeft');
+            if (savedTime && Number(savedTime) > 0 && Number(savedTime) < timeLeft) {
+                timeLeft = Number(savedTime);
+            }
+
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('exam-page').style.display = 'block';
+            setupAntiCheat();
+            startTimer();
+
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('login-btn').style.display = 'block';
+            pendingExam = null;
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft -= 1;
+                localStorage.setItem('examTimeLeft', timeLeft);
+                if (timeLeft < 0) {
+                    clearInterval(timerInterval);
+                    localStorage.removeItem('examTimeLeft');
+                    alert('Waktu habis!');
+                    return;
+                }
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                document.getElementById('timer').textContent = `Waktu: ${m}:${String(s).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function goToLogin(resetTimer = false) {
+            clearInterval(timerInterval);
+            document.getElementById('exam-page').style.display = 'none';
+            document.getElementById('login-page').style.display = 'flex';
+            document.getElementById('exam-iframe').src = '';
+            document.getElementById('pin-input').value = '';
+            document.getElementById('nis-input').value = '';
+            document.getElementById('violation-modal').style.display = 'none';
+            document.getElementById('lock-modal').style.display = 'none';
+            document.getElementById('ready-message').style.display = 'none';
+            document.getElementById('student-info').style.display = 'none';
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('login-btn').style.display = 'block';
+            if (resetTimer) {
+                localStorage.removeItem('examTimeLeft');
+                timeLeft = 90 * 60;
+            }
+            pendingExam = null;
+            violationCount = 0;
+        }
+
+        function setupAntiCheat() {
+            if (window._antiCheatInitialized) return;
+            window._antiCheatInitialized = true;
+
+            function handleViolation() {
+                // only detect when exam page is active
+                if (document.getElementById('exam-page').style.display !== 'block') return;
+                showViolation();
+            }
+
+            document.addEventListener('visibilitychange', () => { if (document.hidden) handleViolation(); });
+            window.addEventListener('blur', handleViolation);
+        }
+
+        function showViolation() {
+            violationCount += 1;
+            localStorage.setItem('examTimeLeft', timeLeft);
+            clearInterval(timerInterval);
+
+            if (violationCount > 3) {
+                document.getElementById('lock-modal').style.display = 'flex';
+                return;
+            }
+
+            const modal = document.getElementById('violation-modal');
+            modal.style.display = 'flex';
+        }
+
+        function lockExam() {
+            clearInterval(timerInterval);
+            document.getElementById('lock-modal').style.display = 'flex';
+        }
+
+        function resetExamAfterFinish() {
+            alert('Terima kasih karena sudah mengerjakan soal dengan jujur.');
+            goToLogin(true);
+        }
+
+        document.getElementById('login-btn').addEventListener('click', () => validatePin());
+        document.getElementById('start-btn').addEventListener('click', () => startExam());
+        document.getElementById('finish-button').addEventListener('click', () => {
+            const confirmed = confirm('Apakah Anda sudah klik SUBMIT pada Google Form?');
+            if (confirmed) {
+                resetExamAfterFinish();
+            }
+        });
+
+        document.getElementById('back-to-login-btn').addEventListener('click', () => {
+            goToLogin(false);
+        });
+
+        document.getElementById('close-lock-btn').addEventListener('click', () => {
+            goToLogin(true);
+        });
+    </script>
+</body>
+</html>
