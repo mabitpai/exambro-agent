@@ -263,14 +263,13 @@
             if (window._antiCheatInitialized) return;
             window._antiCheatInitialized = true;
 
-            function handleViolation() {
-                // only detect when exam page is active
-                if (document.getElementById('exam-page').style.display !== 'block') return;
-                showViolation();
-            }
-
-            document.addEventListener('visibilitychange', () => { if (document.hidden) handleViolation(); });
-            window.addEventListener('blur', handleViolation);
+            // Hanya deteksi tab switch (visibilitychange), jangan blur event
+            // Blur event terlalu sensitif saat interaksi dengan form di iframe
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && document.getElementById('exam-page').style.display === 'block') {
+                    showViolation();
+                }
+            });
         }
 
         function showViolation() {
